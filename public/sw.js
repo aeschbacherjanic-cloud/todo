@@ -1,10 +1,7 @@
 // Service Worker for Daily Routine notifications
-const CACHE = 'daily-routine-v1'
-
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()))
 
-// Handle notification clicks — open the app
 self.addEventListener('notificationclick', e => {
   e.notification.close()
   e.waitUntil(
@@ -15,14 +12,22 @@ self.addEventListener('notificationclick', e => {
   )
 })
 
-// Called from the main app to schedule both daily alarms
+// Receive schedule config from the app
 self.addEventListener('message', e => {
   if (e.data?.type === 'SCHEDULE_NOTIFICATIONS') {
-    scheduleAlarms()
+    const settings = e.data.settings || {
+      morningEnabled: true, morningTime: '07:00',
+      eveningEnabled: true, eveningTime: '21:30',
+    }
+    scheduleAlarms(settings)
   }
 })
 
-function msUntil(hour, minute) {
+let morningTimer = null
+let eveningTimer = null
+
+function msUntil(hhmm) {
+  const [hour, minute] = hhmm.split(':').map(Number)
   const now = new Date()
   const target = new Date()
   target.setHours(hour, minute, 0, 0)
@@ -30,32 +35,38 @@ function msUntil(hour, minute) {
   return target - now
 }
 
-function scheduleAlarms() {
-  // Morning: 07:00
-  setTimeout(() => {
-    self.registration.showNotification('Guten Morgen! 🌅', {
-      body: 'Deine Morgen-Routine wartet auf dich.',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: 'morning-reminder',
-      renotify: true,
-      vibrate: [200, 100, 200],
-    })
-    scheduleAlarms() // reschedule for next day
-  }, msUntil(7, 0))
+function scheduleAlarms(settings) {
+  // Clear existing timers
+  if (morningTimer) clearTimeout(morningTimer)
+  if (eveningTimer) clearTimeout(eveningTimer)
 
-  // Evening: 21:30
-  setTimeout(() => {
-    self.registration.showNotification('Guten Abend! 🌙', {
-      body: 'Vergiss deine Abend-Routine nicht.',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: 'evening-reminder',
-      renotify: true,
-      vibrate: [200, 100, 200],
-    })
-  }, msUntil(21, 30))
+  if (settings.morningEnabled) {
+    const fireAndReschedule = () => {
+      self.registration.showNotification('Guten Morgen! 🌅', {
+        body: 'Deine Morgen-Routine wartet auf dich.',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: 'morning-reminder',
+        renotify: true,
+        vibrate: [200, 100, 200],
+      })
+      morningTimer = setTimeout(fireAndReschedule, msUntil(settings.morningTime))
+    }
+    morningTimer = setTimeout(fireAndReschedule, msUntil(settings.morningTime))
+  }
+
+  if (settings.eveningEnabled) {
+    const fireAndReschedule = () => {
+      self.registration.showNotification('Guten Abend! 🌙', {
+        body: 'Vergiss deine Abend-Routine nicht.',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: 'evening-reminder',
+        renotify: true,
+        vibrate: [200, 100, 200],
+      })
+      eveningTimer = setTimeout(fireAndReschedule, msUntil(settings.eveningTime))
+    }
+    eveningTimer = setTimeout(fireAndReschedule, msUntil(settings.eveningTime))
+  }
 }
-
-// Auto-start scheduling on SW activation
-scheduleAlarms()

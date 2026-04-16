@@ -1,3 +1,5 @@
+import { loadSettings } from './settings.js'
+
 let swReg = null
 
 export async function registerServiceWorker() {
@@ -9,16 +11,27 @@ export async function registerServiceWorker() {
 
 export function getNotificationStatus() {
   if (!('Notification' in window)) return 'unsupported'
-  return Notification.permission // 'default' | 'granted' | 'denied'
+  return Notification.permission
 }
 
-// Must be called directly from a user tap (iOS requirement)
-export async function requestNotifications() {
+// Request permission if needed, then schedule based on current settings.
+// Must be called from a user gesture on iOS.
+export async function applyNotificationSettings(settings) {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) return 'unsupported'
-  const result = await Notification.requestPermission()
-  if (result !== 'granted') return result
+
+  if (Notification.permission === 'default') {
+    const result = await Notification.requestPermission()
+    if (result !== 'granted') return result
+  }
+
+  if (Notification.permission !== 'granted') return Notification.permission
+
   if (!swReg) swReg = await navigator.serviceWorker.ready
+
   const sw = swReg.active || swReg.waiting || swReg.installing
-  if (sw) sw.postMessage({ type: 'SCHEDULE_NOTIFICATIONS' })
+  if (sw) {
+    sw.postMessage({ type: 'SCHEDULE_NOTIFICATIONS', settings })
+  }
+
   return 'granted'
 }

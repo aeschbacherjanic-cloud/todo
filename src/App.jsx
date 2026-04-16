@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { WEEKDAY_FULL, dateKey, getTasksForDay, toggleComplete, hideTask, addCustomTask, removeCustomTask, isEveryOtherDay, isDayComplete } from './tasks.js'
+import { WEEKDAY_FULL, dateKey, getTasksForDay, toggleComplete, hideTask, addCustomTask, removeCustomTask, isEveryOtherDay } from './tasks.js'
 import TaskSection from './components/TaskSection.jsx'
 import AddTaskModal from './components/AddTaskModal.jsx'
+import SettingsModal from './components/SettingsModal.jsx'
 import StreakPage from './components/StreakPage.jsx'
 import GeneralTodos from './components/GeneralTodos.jsx'
 
@@ -21,6 +22,7 @@ export default function App() {
   const [tasks, setTasks] = useState({ morning: [], evening: [] })
   const [showAddModal, setShowAddModal] = useState(false)
   const [addModalTime, setAddModalTime] = useState('morning')
+  const [showSettings, setShowSettings] = useState(false)
   const [dayComplete, setDayComplete] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
 
@@ -28,8 +30,7 @@ export default function App() {
     const t = getTasksForDay(currentDate)
     setTasks(t)
     const all = [...t.morning, ...t.evening]
-    const complete = all.length > 0 && all.every(x => x.completed)
-    setDayComplete(complete)
+    setDayComplete(all.length > 0 && all.every(x => x.completed))
   }, [currentDate])
 
   useEffect(() => { refresh() }, [refresh])
@@ -56,16 +57,14 @@ export default function App() {
   const dayName = WEEKDAY_FULL[currentDate.getDay()]
   const today = isToday(currentDate)
   const physioDay = isEveryOtherDay(currentDate)
-  const morningDone = tasks.morning.filter(t => t.completed).length
-  const eveningDone = tasks.evening.filter(t => t.completed).length
-  const totalDone = morningDone + eveningDone
+  const totalDone = tasks.morning.filter(t => t.completed).length + tasks.evening.filter(t => t.completed).length
   const totalAll = tasks.morning.length + tasks.evening.length
 
   return (
     <div className="app">
       <div className="status-bar-spacer" />
 
-      {/* ── Tab content ── */}
+      {/* ── Routine tab ── */}
       {tab === 'routine' && (
         <>
           <header className="header">
@@ -88,17 +87,24 @@ export default function App() {
               </button>
             </div>
 
-            <div className="progress-bar-wrap">
-              <div className="progress-bar-bg">
-                <div className="progress-bar-fill" style={{ width: totalAll > 0 ? `${(totalDone / totalAll) * 100}%` : '0%' }} />
+            <div className="header-bottom-row">
+              <div className="progress-bar-wrap">
+                <div className="progress-bar-bg">
+                  <div className="progress-bar-fill" style={{ width: totalAll > 0 ? `${(totalDone / totalAll) * 100}%` : '0%' }} />
+                </div>
+                <span className="progress-label">{totalDone}/{totalAll} erledigt</span>
               </div>
-              <span className="progress-label">{totalDone}/{totalAll} erledigt</span>
+              <button className="gear-btn" onClick={() => setShowSettings(true)} aria-label="Einstellungen">
+                <GearIcon />
+              </button>
             </div>
 
-            <div className="header-badges">
-              {physioDay && <div className="badge physio-badge">🏃 Physio-Tag</div>}
-              {dayComplete && <div className="badge complete-badge">🎉 Alles erledigt!</div>}
-            </div>
+            {(physioDay || dayComplete) && (
+              <div className="header-badges">
+                {physioDay && <div className="badge physio-badge">🏃 Physio-Tag</div>}
+                {dayComplete && <div className="badge complete-badge">🎉 Alles erledigt!</div>}
+              </div>
+            )}
           </header>
 
           {showConfetti && <Confetti />}
@@ -124,10 +130,16 @@ export default function App() {
         </>
       )}
 
+      {/* ── Streak tab ── */}
       {tab === 'streak' && (
         <>
           <header className="header simple-header">
-            <h1 className="header-day">Übersicht</h1>
+            <div className="simple-header-row">
+              <h1 className="header-day">Übersicht</h1>
+              <button className="gear-btn" onClick={() => setShowSettings(true)} aria-label="Einstellungen">
+                <GearIcon />
+              </button>
+            </div>
           </header>
           <main className="main">
             <StreakPage />
@@ -135,10 +147,16 @@ export default function App() {
         </>
       )}
 
+      {/* ── Todos tab ── */}
       {tab === 'todos' && (
         <>
           <header className="header simple-header">
-            <h1 className="header-day">Todos</h1>
+            <div className="simple-header-row">
+              <h1 className="header-day">Todos</h1>
+              <button className="gear-btn" onClick={() => setShowSettings(true)} aria-label="Einstellungen">
+                <GearIcon />
+              </button>
+            </div>
           </header>
           <main className="main">
             <GeneralTodos />
@@ -162,7 +180,18 @@ export default function App() {
         </button>
       </nav>
       <div className="tab-bar-spacer" />
+
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>
+  )
+}
+
+function GearIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
   )
 }
 
@@ -198,21 +227,14 @@ function ChevronRight() {
 function Confetti() {
   const colors = ['#007AFF','#34C759','#FF9500','#FF3B30','#5856D6','#FFD700']
   const pieces = Array.from({ length: 30 }, (_, i) => ({
-    id: i,
-    color: colors[i % colors.length],
-    left: Math.random() * 100,
-    delay: Math.random() * 0.8,
-    size: 6 + Math.random() * 8,
+    id: i, color: colors[i % colors.length],
+    left: Math.random() * 100, delay: Math.random() * 0.8, size: 6 + Math.random() * 8,
   }))
   return (
     <div className="confetti-wrap" aria-hidden>
       {pieces.map(p => (
         <div key={p.id} className="confetti-piece" style={{
-          left: `${p.left}%`,
-          background: p.color,
-          width: p.size,
-          height: p.size,
-          animationDelay: `${p.delay}s`,
+          left: `${p.left}%`, background: p.color, width: p.size, height: p.size, animationDelay: `${p.delay}s`,
         }} />
       ))}
     </div>
