@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { calcStreak, getLast28Days, WEEKDAYS } from '../tasks.js'
+import { getNotificationStatus, requestNotifications } from '../notifications.js'
 
 const MILESTONES = [3, 7, 14, 21, 30, 60, 100]
 
@@ -24,9 +25,45 @@ export default function StreakPage() {
   const reward = getMilestoneReward(streak)
   const nextMilestone = getNextMilestone(streak)
   const completedTotal = days.filter(d => d.complete).length
+  const [notifStatus, setNotifStatus] = useState(() => getNotificationStatus())
+
+  async function handleEnableNotif() {
+    const result = await requestNotifications()
+    setNotifStatus(result === 'unsupported' ? 'unsupported' : result)
+  }
 
   return (
     <div className="streak-page">
+      {/* Notification banner */}
+      {notifStatus === 'default' && (
+        <button className="notif-banner" onClick={handleEnableNotif}>
+          <span className="notif-banner-icon">🔔</span>
+          <div className="notif-banner-text">
+            <strong>Erinnerungen aktivieren</strong>
+            <span>07:00 Morgen · 21:30 Abend</span>
+          </div>
+          <span className="notif-banner-arrow">›</span>
+        </button>
+      )}
+      {notifStatus === 'granted' && (
+        <div className="notif-banner notif-on">
+          <span className="notif-banner-icon">✅</span>
+          <div className="notif-banner-text">
+            <strong>Erinnerungen aktiv</strong>
+            <span>07:00 Morgen · 21:30 Abend</span>
+          </div>
+        </div>
+      )}
+      {notifStatus === 'denied' && (
+        <div className="notif-banner notif-denied">
+          <span className="notif-banner-icon">🔕</span>
+          <div className="notif-banner-text">
+            <strong>Benachrichtigungen blockiert</strong>
+            <span>In den iOS-Einstellungen aktivieren</span>
+          </div>
+        </div>
+      )}
+
       {/* Hero */}
       <div className="streak-hero">
         <div className="streak-badge" style={{ borderColor: reward.color }}>

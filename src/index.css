@@ -258,6 +258,24 @@ html, body {
 .modal-btn.confirm:active { background: #0056b3; transform: scale(0.97); }
 .modal-btn.confirm:disabled { background: var(--separator); color: var(--text-secondary); cursor: not-allowed; }
 
+/* ─── Notification Banner ───────────────────── */
+.notif-banner {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border-radius: var(--radius);
+  background: var(--primary); color: white;
+  border: none; width: 100%; text-align: left;
+  cursor: pointer; box-shadow: var(--shadow);
+  font-family: inherit; transition: opacity 0.15s;
+}
+.notif-banner:active { opacity: 0.85; }
+.notif-banner.notif-on { background: var(--success); cursor: default; }
+.notif-banner.notif-denied { background: var(--separator); color: var(--text-secondary); cursor: default; }
+.notif-banner-icon { font-size: 22px; flex-shrink: 0; }
+.notif-banner-text { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.notif-banner-text strong { font-size: 15px; font-weight: 600; }
+.notif-banner-text span { font-size: 12px; opacity: 0.85; }
+.notif-banner-arrow { font-size: 22px; opacity: 0.7; }
+
 /* ─── Streak Page ────────────────────────────── */
 .streak-page { display: flex; flex-direction: column; gap: 16px; }
 

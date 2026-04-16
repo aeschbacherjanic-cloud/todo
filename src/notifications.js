@@ -1,25 +1,24 @@
-export async function setupNotifications() {
-  if (!('Notification' in window) || !('serviceWorker' in navigator)) return
+let swReg = null
 
-  // Register service worker
-  let reg
+export async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return
   try {
-    reg = await navigator.serviceWorker.register('/sw.js')
-  } catch {
-    return
-  }
+    swReg = await navigator.serviceWorker.register('/sw.js')
+  } catch {}
+}
 
-  // Request permission if not yet granted
-  if (Notification.permission === 'default') {
-    const result = await Notification.requestPermission()
-    if (result !== 'granted') return
-  }
+export function getNotificationStatus() {
+  if (!('Notification' in window)) return 'unsupported'
+  return Notification.permission // 'default' | 'granted' | 'denied'
+}
 
-  if (Notification.permission !== 'granted') return
-
-  // Tell the SW to schedule alarms
-  const sw = reg.active || reg.waiting || reg.installing
-  if (sw) {
-    sw.postMessage({ type: 'SCHEDULE_NOTIFICATIONS' })
-  }
+// Must be called directly from a user tap (iOS requirement)
+export async function requestNotifications() {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return 'unsupported'
+  const result = await Notification.requestPermission()
+  if (result !== 'granted') return result
+  if (!swReg) swReg = await navigator.serviceWorker.ready
+  const sw = swReg.active || swReg.waiting || swReg.installing
+  if (sw) sw.postMessage({ type: 'SCHEDULE_NOTIFICATIONS' })
+  return 'granted'
 }
