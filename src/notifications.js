@@ -1,5 +1,3 @@
-import { loadSettings } from './settings.js'
-
 let swReg = null
 
 export async function registerServiceWorker() {
